@@ -1,5 +1,6 @@
 module SnakeGames
 
-# Write your package code here.
+include("snake_game.jl")
+include("interaction.jl")
 
 end
