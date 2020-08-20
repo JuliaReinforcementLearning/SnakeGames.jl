@@ -7,6 +7,8 @@ struct SnakeGame{N,M,R<:AbstractRNG}
     # TODO: using DataStructures: Deque ?
     snakes::Vector{Vector{CartesianIndex{N}}}
     foods::Set{CartesianIndex{N}}
+    walls::Vector{CartesianIndex{N}}
+    n_foods::Int
     rng::R
 end
 
@@ -30,49 +32,60 @@ get_walls(game) = findall(isone, selectdim(game.board, 1, ind_of_wall(game)))
 
 # Keyword Arguments
 
-- `size::NTuple{N,Int}=(8,8)`, the size of game board. `N` can be greater than 2.
+- `shape::NTuple{N,Int}=(8,8)`, the size of game board. `N` can be greater than 2.
 - `walls`, an iterable type with elements of type `CartesianIndex{N}`.
 - `n_snakes`, number of snakes.
 - `n_foods`, maximum number of foods in each step.
 - `rng::AbstractRNG`, inner RNG used to sample initial snakes and necessary foods in each step.
 """
-function SnakeGame(;size=(8,8), walls=[], n_snakes=1, n_foods=1,rng=Random.GLOBAL_RNG)
-    n_snakes+n_foods >= reduce(*, size) && error("n_snakes+n_foods must be less than the total grids")
-    board = BitArray(undef, n_snakes+n_snakes+1#=wall=#+1#=food=#, size...)
-    snakes = [Vector{CartesianIndex{length(size)}}() for _ in 1:n_snakes]
-    foods = Set{CartesianIndex{length(size)}}()
-    game = SnakeGame(board, snakes, foods, rng)
+function SnakeGame(;shape=(8,8), walls=CartesianIndex{length(shape)}[], n_snakes=1, n_foods=1,rng=Random.GLOBAL_RNG)
+    n_snakes+n_foods >= reduce(*, shape) && error("n_snakes+n_foods must be less than the total grids")
+    board = BitArray(undef, n_snakes#=snake head=#+n_snakes#=snake body=#+1#=wall=#+1#=food=#, shape...)
+    snakes = [Vector{CartesianIndex{length(shape)}}() for _ in 1:n_snakes]
+    foods = Set{CartesianIndex{length(shape)}}()
+    game = SnakeGame(board, snakes, foods, walls, n_foods, rng)
+    reset!(game)
+    game
+end
 
-    fill!(board, false)
+function reset!(game::SnakeGame)
+    fill!(game.board, false)
 
-    for w in walls
+    for s in game.snakes
+        empty!(s)
+    end
+    
+    empty!(game.foods)
+
+    # do not change walls
+
+    for w in game.walls
         mark_wall!(game, w)
     end
 
-    while length(foods) < n_foods
-        p = rand(rng, CartesianIndices(size))
-        if any(@view(board[:, p]))
+    while length(game.foods) < game.n_foods
+        p = rand(game.rng, CartesianIndices(size(game.board)[2:end]))
+        if any(@view(game.board[:, p]))
             continue  # there's a wall
         else
-            push!(foods, p)
+            push!(game.foods, p)
             mark_food!(game, p)
         end
     end
     
-    for i in 1:n_snakes
+    for i in 1:length(game.snakes)
         while true
-            p = rand(rng, CartesianIndices(size))
-            if any(@view(board[:, p]))
+            p = rand(game.rng, CartesianIndices(size(game.board)[2:end]))
+            if any(@view(game.board[:, p]))
                 continue  # there's a wall or food
             else
-                push!(snakes[i], p)
+                push!(game.snakes[i], p)
                 mark_snake_head!(game, p, i)
                 break
             end
         end
     end
 
-    game
 end
 
 (game::SnakeGame)(action::CartesianIndex) = game([action])
