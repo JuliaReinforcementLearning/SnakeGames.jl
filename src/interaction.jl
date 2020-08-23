@@ -1,7 +1,25 @@
-export init_screen, play
+export play, scene_and_node
 
 using Makie
 using Colors
+
+const SNAKE_GAME_SCEENS = IdDict()
+
+function scene_and_node(game::SnakeGame)
+    if haskey(SNAKE_GAME_SCEENS, game)
+        SNAKE_GAME_SCEENS[game]
+    else
+        node = Node(game)
+        scene = init_screen(node)
+        get!(SNAKE_GAME_SCEENS, game, (scene, node))
+    end
+end
+
+function Base.display(game::SnakeGame)
+    scene, node = scene_and_node(game)
+    node[] = game
+    display(scene)
+end
 
 function init_screen(game::Observable{<:SnakeGame{2}}; resolution=(1000,1000))
     SNAKE_COLORS = range(HSV(60,1,1), stop=HSV(300,1,1), length=length(game[].snakes)+1)
@@ -39,8 +57,7 @@ play() = play(SnakeGame())
 
 function play(game::SnakeGame{2};f_name="test.gif",framerate = 2)
     @assert length(game.snakes) <= 3 "At most three players are supported in interactive mode"
-    game_node = Node(game)
-    scene = init_screen(game_node)
+    scene, game_node = scene_and_node(game)
 
     LEFT = CartesianIndex(-1, 0)
     RIGHT = CartesianIndex(1, 0)
