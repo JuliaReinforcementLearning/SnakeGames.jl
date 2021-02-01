@@ -1,3 +1,5 @@
+Please see more games in [GridWorlds.jl](https://github.com/JuliaReinforcementLearning/GridWorlds.jl)
+
 # SnakeGames
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaReinforcementLearning.github.io/SnakeGames.jl/stable)
