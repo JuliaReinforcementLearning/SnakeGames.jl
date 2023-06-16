@@ -1,6 +1,7 @@
 export play, scene_and_node
 
 using Makie
+using WGLMakie
 using Colors
 
 const SNAKE_GAME_SCEENS = IdDict()
@@ -9,7 +10,7 @@ function scene_and_node(game::SnakeGame)
     if haskey(SNAKE_GAME_SCEENS, game)
         SNAKE_GAME_SCEENS[game]
     else
-        node = Node(game)
+        node = Observable(game)
         scene = init_screen(node)
         get!(SNAKE_GAME_SCEENS, game, (scene, node))
     end
@@ -29,18 +30,18 @@ function init_screen(game::Observable{<:SnakeGame{2}}; resolution=(1000,1000))
     poly!(scene, area)
 
     grid_size = @lift((widths($area)[1] / size($game)[1], widths($area)[2] / size($game)[2]))
-    
+
     walls = get_walls(game[])
     if length(walls) > 0
-        wall_boxes = @lift([FRect2D((w.I .- (1,1)) .* $grid_size , $grid_size) for w in walls])
+        wall_boxes = @lift([Rect2f((w.I .- (1,1)) .* $grid_size , $grid_size) for w in walls])
         poly!(scene, wall_boxes, color=:gray)
     end
 
     for i in 1:length(game[].snakes)
-        snake_boxes = @lift([FRect2D((p.I .- (1,1)) .* $grid_size , $grid_size) for p in $game.snakes[i]])
+        snake_boxes = @lift([Rect2f((p.I .- (1,1)) .* $grid_size , $grid_size) for p in $game.snakes[i]])
         poly!(scene, snake_boxes, color=SNAKE_COLORS[i], strokewidth = 5, strokecolor = :black)
 
-        snake_head_box = @lift(FRect2D(($game.snakes[i][1].I .- (1,1)) .* $grid_size , $grid_size))
+        snake_head_box = @lift(Rect2f(($game.snakes[i][1].I .- (1,1)) .* $grid_size , $grid_size))
         poly!(scene, snake_head_box, color=:black)
         snake_head = @lift((($game.snakes[i][1].I .- 0.5) .* $grid_size))
         scatter!(scene, snake_head, marker='◉', color=SNAKE_COLORS[i], markersize=@lift(minimum($grid_size)))
@@ -67,32 +68,33 @@ function play(game::SnakeGame{2};f_name="test.gif",framerate = 2)
     actions = [rand([LEFT,RIGHT,UP,DOWN]) for _ in game.snakes]
     is_exit = Ref{Bool}(false)
 
-    on(scene.events.keyboardbuttons) do but
-        if ispressed(but, Keyboard.left)
+    on(scene, events(scene).keyboardbutton) do but
+        @show but
+        if ispressed(scene, Keyboard.left)
             actions[1] != -LEFT && (actions[1] = LEFT)
-        elseif ispressed(but, Keyboard.up)
+        elseif ispressed(scene, Keyboard.up)
             actions[1] != -UP && (actions[1] = UP)
-        elseif ispressed(but, Keyboard.down)
+        elseif ispressed(scene, Keyboard.down)
             actions[1] != -DOWN && (actions[1] = DOWN)
-        elseif ispressed(but, Keyboard.right)
+        elseif ispressed(scene, Keyboard.right)
             actions[1] != -RIGHT && (actions[1] = RIGHT)
-        elseif ispressed(but, Keyboard.a)
+        elseif ispressed(scene, Keyboard.a)
             actions[2] != -LEFT && (actions[2] = LEFT)
-        elseif ispressed(but, Keyboard.w)
+        elseif ispressed(scene, Keyboard.w)
             actions[2] != -UP && (actions[2] = UP)
-        elseif ispressed(but, Keyboard.s)
+        elseif ispressed(scene, Keyboard.s)
             actions[2] != -DOWN && (actions[2] = DOWN)
-        elseif ispressed(but, Keyboard.d)
+        elseif ispressed(scene, Keyboard.d)
             actions[2] != -RIGHT && (actions[2] = RIGHT)
-        elseif ispressed(but, Keyboard.j)
+        elseif ispressed(scene, Keyboard.j)
             actions[3] != -LEFT && (actions[3] = LEFT)
-        elseif ispressed(but, Keyboard.i)
+        elseif ispressed(scene, Keyboard.i)
             actions[3] != -UP && (actions[3] = UP)
-        elseif ispressed(but, Keyboard.k)
+        elseif ispressed(scene, Keyboard.k)
             actions[3] != -DOWN && (actions[3] = DOWN)
-        elseif ispressed(but, Keyboard.l)
+        elseif ispressed(scene, Keyboard.l)
             actions[3] != -RIGHT && (actions[3] = RIGHT)
-        elseif ispressed(but, Keyboard.q)
+        elseif ispressed(scene, Keyboard.q)
             is_exit[] = true
         end
     end
