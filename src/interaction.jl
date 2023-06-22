@@ -56,7 +56,7 @@ end
 
 play() = play(SnakeGame())
 
-function play(game::SnakeGame{2};f_name="test.gif",framerate = 2)
+function play(game::SnakeGame{2};f_name="test.mp4",framerate = 2)
     @assert length(game.snakes) <= 3 "At most three players are supported in interactive mode"
     scene, game_node = scene_and_node(game)
 
@@ -98,7 +98,6 @@ function play(game::SnakeGame{2};f_name="test.gif",framerate = 2)
             is_exit[] = true
         end
     end
-
     record(scene, f_name; framerate=framerate) do io
         while true
             sleep(1)
